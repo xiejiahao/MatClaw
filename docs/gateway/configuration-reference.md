@@ -725,7 +725,7 @@ Include your own number in `allowFrom` to enable self-chat mode (ignores native 
 
 ### `agents.defaults.workspace`
 
-Default: `~/.openclaw/workspace`.
+Default: `<stateDir>/workspace` (for example `~/.openclaw/workspace` or `~/.openclaw-<profile>/workspace`).
 
 ```json5
 {

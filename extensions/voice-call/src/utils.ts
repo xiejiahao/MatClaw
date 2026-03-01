@@ -12,3 +12,13 @@ export function resolveUserPath(input: string): string {
   }
   return path.resolve(trimmed);
 }
+
+export function resolveStateDirFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  const stateOverride = env.OPENCLAW_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  if (stateOverride) {
+    return resolveUserPath(stateOverride);
+  }
+  const profile = env.OPENCLAW_PROFILE?.trim() || env.CLAWDBOT_PROFILE?.trim();
+  const suffix = profile && profile.toLowerCase() !== "default" ? `-${profile}` : "";
+  return path.join(os.homedir(), `.openclaw${suffix}`);
+}

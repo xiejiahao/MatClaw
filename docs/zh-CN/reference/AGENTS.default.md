@@ -16,7 +16,7 @@ x-i18n:
 
 ## 首次运行（推荐）
 
-OpenClaw 为智能体使用专用的工作区目录。默认：`~/.openclaw/workspace`（可通过 `agents.defaults.workspace` 配置）。
+OpenClaw 为智能体使用专用的工作区目录。默认：`<stateDir>/workspace`（例如 `~/.openclaw/workspace` 或 `~/.openclaw-<profile>/workspace`，可通过 `agents.defaults.workspace` 配置）。
 
 1. 创建工作区（如果尚不存在）：
 

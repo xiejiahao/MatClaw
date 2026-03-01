@@ -88,7 +88,7 @@ openclaw channels login
 openclaw gateway --port 18789
 ```
 
-3. 在 `~/.openclaw/openclaw.json` 中放置最小配置：
+3. 在 `<stateDir>/openclaw.json` 中放置最小配置：
 
 ```json5
 {
@@ -104,7 +104,7 @@ openclaw gateway --port 18789
 
 OpenClaw 从其工作区目录读取操作指令和"记忆"。
 
-默认情况下，OpenClaw 使用 `~/.openclaw/workspace` 作为智能体工作区，并会在设置/首次智能体运行时自动创建它（加上起始的 `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`）。`BOOTSTRAP.md` 仅在工作区是全新的时候创建（删除后不应再出现）。
+默认情况下，OpenClaw 使用 `<stateDir>/workspace` 作为智能体工作区（例如 `~/.openclaw/workspace` 或 `~/.openclaw-<profile>/workspace`），并会在设置/首次智能体运行时自动创建它（加上起始的 `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`）。`BOOTSTRAP.md` 仅在工作区是全新的时候创建（删除后不应再出现）。
 
 提示：将此文件夹视为 OpenClaw 的"记忆"，并将其设为 git 仓库（最好是私有的），这样你的 `AGENTS.md` + 记忆文件就有了备份。如果安装了 git，全新的工作区会自动初始化。
 
@@ -119,9 +119,7 @@ openclaw setup
 
 ```json5
 {
-  agent: {
-    workspace: "~/.openclaw/workspace",
-  },
+  agents: { defaults: { workspace: "<stateDir>/workspace" } },
 }
 ```
 
@@ -129,9 +127,7 @@ openclaw setup
 
 ```json5
 {
-  agent: {
-    skipBootstrap: true,
-  },
+  agents: { defaults: { skipBootstrap: true } },
 }
 ```
 
@@ -148,13 +144,15 @@ OpenClaw 默认为良好的助手设置，但你通常需要调整：
 ```json5
 {
   logging: { level: "info" },
-  agent: {
-    model: "anthropic/claude-opus-4-5",
-    workspace: "~/.openclaw/workspace",
-    thinkingDefault: "high",
-    timeoutSeconds: 1800,
-    // 从 0 开始；稍后启用。
-    heartbeat: { every: "0m" },
+  agents: {
+    defaults: {
+      model: "anthropic/claude-opus-4-5",
+      workspace: "<stateDir>/workspace",
+      thinkingDefault: "high",
+      timeoutSeconds: 1800,
+      // 从 0 开始；稍后启用。
+      heartbeat: { every: "0m" },
+    },
   },
   channels: {
     whatsapp: {
@@ -201,9 +199,7 @@ OpenClaw 默认为良好的助手设置，但你通常需要调整：
 
 ```json5
 {
-  agent: {
-    heartbeat: { every: "30m" },
-  },
+  agents: { defaults: { heartbeat: { every: "30m" } } },
 }
 ```
 

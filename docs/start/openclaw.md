@@ -55,7 +55,7 @@ openclaw channels login
 openclaw gateway --port 18789
 ```
 
-3. Put a minimal config in `~/.openclaw/openclaw.json`:
+3. Put a minimal config in `<stateDir>/openclaw.json`:
 
 ```json5
 {
@@ -71,7 +71,7 @@ When onboarding finishes, we auto-open the dashboard and print a clean (non-toke
 
 OpenClaw reads operating instructions and “memory” from its workspace directory.
 
-By default, OpenClaw uses `~/.openclaw/workspace` as the agent workspace, and will create it (plus starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`) automatically on setup/first agent run. `BOOTSTRAP.md` is only created when the workspace is brand new (it should not come back after you delete it). `MEMORY.md` is optional (not auto-created); when present, it is loaded for normal sessions. Subagent sessions only inject `AGENTS.md` and `TOOLS.md`.
+By default, OpenClaw uses `<stateDir>/workspace` as the agent workspace (for example `~/.openclaw/workspace` or `~/.openclaw-<profile>/workspace`), and will create it (plus starter `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`) automatically on setup/first agent run. `BOOTSTRAP.md` is only created when the workspace is brand new (it should not come back after you delete it). `MEMORY.md` is optional (not auto-created); when present, it is loaded for normal sessions. Subagent sessions only inject `AGENTS.md` and `TOOLS.md`.
 
 Tip: treat this folder like OpenClaw’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
@@ -86,9 +86,7 @@ Optional: choose a different workspace with `agents.defaults.workspace` (support
 
 ```json5
 {
-  agent: {
-    workspace: "~/.openclaw/workspace",
-  },
+  agents: { defaults: { workspace: "<stateDir>/workspace" } },
 }
 ```
 
@@ -96,9 +94,7 @@ If you already ship your own workspace files from a repo, you can disable bootst
 
 ```json5
 {
-  agent: {
-    skipBootstrap: true,
-  },
+  agents: { defaults: { skipBootstrap: true } },
 }
 ```
 
@@ -115,13 +111,15 @@ Example:
 ```json5
 {
   logging: { level: "info" },
-  agent: {
-    model: "anthropic/claude-opus-4-6",
-    workspace: "~/.openclaw/workspace",
-    thinkingDefault: "high",
-    timeoutSeconds: 1800,
-    // Start with 0; enable later.
-    heartbeat: { every: "0m" },
+  agents: {
+    defaults: {
+      model: "anthropic/claude-opus-4-6",
+      workspace: "<stateDir>/workspace",
+      thinkingDefault: "high",
+      timeoutSeconds: 1800,
+      // Start with 0; enable later.
+      heartbeat: { every: "0m" },
+    },
   },
   channels: {
     whatsapp: {
@@ -169,9 +167,7 @@ Set `agents.defaults.heartbeat.every: "0m"` to disable.
 
 ```json5
 {
-  agent: {
-    heartbeat: { every: "30m" },
-  },
+  agents: { defaults: { heartbeat: { every: "30m" } } },
 }
 ```
 

@@ -742,7 +742,7 @@ OpenClaw 在以下位置存储**每个智能体的**认证配置文件（OAuth +
   - `default`：可选；当设置多个时，第一个获胜并记录警告。
     如果未设置，列表中的**第一个条目**为默认智能体。
   - `name`：智能体的显示名称。
-  - `workspace`：默认 `~/.openclaw/workspace-<agentId>`（对于 `main`，回退到 `agents.defaults.workspace`）。
+  - `workspace`：默认 `<stateDir>/workspace-<agentId>`（对于 `main`，回退到 `agents.defaults.workspace`）。
   - `agentDir`：默认 `~/.openclaw/agents/<agentId>/agent`。
   - `model`：每智能体默认模型，覆盖该智能体的 `agents.defaults.model`。
     - 字符串形式：`"provider/model"`，仅覆盖 `agents.defaults.model.primary`

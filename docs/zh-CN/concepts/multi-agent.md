@@ -42,7 +42,7 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 - 配置：`~/.openclaw/openclaw.json`（或 `OPENCLAW_CONFIG_PATH`）
 - 状态目录：`~/.openclaw`（或 `OPENCLAW_STATE_DIR`）
-- 工作区：`~/.openclaw/workspace`（或 `~/.openclaw/workspace-<agentId>`）
+- 工作区：`<stateDir>/workspace`（或 `<stateDir>/workspace-<agentId>`）
 - 智能体目录：`~/.openclaw/agents/<agentId>/agent`（或 `agents.list[].agentDir`）
 - 会话：`~/.openclaw/agents/<agentId>/sessions`
 
@@ -52,7 +52,7 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 - `agentId` 默认为 **`main`**。
 - 会话键为 `agent:main:<mainKey>`。
-- 工作区默认为 `~/.openclaw/workspace`（或当设置了 `OPENCLAW_PROFILE` 时为 `~/.openclaw/workspace-<profile>`）。
+- 工作区默认为 `<stateDir>/workspace`（例如 `~/.openclaw/workspace` 或 `~/.openclaw-<profile>/workspace`）。
 - 状态默认为 `~/.openclaw/agents/main/agent`。
 
 ## 智能体助手

@@ -1,6 +1,7 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { VoiceCallConfigSchema } from "./config.js";
 import { CallManager } from "./manager.js";
 import type { VoiceCallProvider } from "./providers/base.js";
@@ -86,6 +87,53 @@ function markCallAnswered(manager: CallManager, callId: string, eventId: string)
 }
 
 describe("CallManager", () => {
+  it("uses OPENCLAW_STATE_DIR for the default store path", () => {
+    const envSnapshot = { ...process.env };
+    const stateDir = createTestStorePath();
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    delete process.env.CLAWDBOT_STATE_DIR;
+    delete process.env.OPENCLAW_PROFILE;
+
+    try {
+      const config = VoiceCallConfigSchema.parse({
+        enabled: true,
+        provider: "plivo",
+        fromNumber: "+15550000000",
+      });
+      const manager = new CallManager(config);
+      expect((manager as unknown as { storePath: string }).storePath).toBe(
+        path.join(stateDir, "voice-calls"),
+      );
+    } finally {
+      process.env = envSnapshot;
+    }
+  });
+
+  it("prefers legacy store path when legacy voice-call data already exists", () => {
+    const envSnapshot = { ...process.env };
+    const tempHome = createTestStorePath();
+    const stateDir = path.join(tempHome, ".openclaw-work");
+    const legacyStore = path.join(tempHome, ".openclaw", "voice-calls");
+    fs.mkdirSync(legacyStore, { recursive: true });
+    fs.writeFileSync(path.join(legacyStore, "calls.jsonl"), '{"id":"legacy"}\n', "utf-8");
+    const homedirSpy = vi.spyOn(os, "homedir").mockReturnValue(tempHome);
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    delete process.env.CLAWDBOT_STATE_DIR;
+
+    try {
+      const config = VoiceCallConfigSchema.parse({
+        enabled: true,
+        provider: "plivo",
+        fromNumber: "+15550000000",
+      });
+      const manager = new CallManager(config);
+      expect((manager as unknown as { storePath: string }).storePath).toBe(legacyStore);
+    } finally {
+      homedirSpy.mockRestore();
+      process.env = envSnapshot;
+    }
+  });
+
   it("upgrades providerCallId mapping when provider ID changes", async () => {
     const { manager } = createManagerHarness();
 

@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { sleep } from "openclaw/plugin-sdk";
 import type { VoiceCallConfig } from "./config.js";
 import type { VoiceCallRuntime } from "./runtime.js";
-import { resolveUserPath } from "./utils.js";
+import { resolveStateDirFromEnv, resolveUserPath } from "./utils.js";
 import {
   cleanupTailscaleExposureRoute,
   getTailscaleSelfInfo,
@@ -27,10 +27,15 @@ function resolveMode(input: string): "off" | "serve" | "funnel" {
 }
 
 function resolveDefaultStorePath(config: VoiceCallConfig): string {
-  const preferred = path.join(os.homedir(), ".openclaw", "voice-calls");
-  const resolvedPreferred = resolveUserPath(preferred);
+  const preferred = path.join(resolveStateDirFromEnv(), "voice-calls");
+  const resolvedPreferred = path.resolve(preferred);
+  const legacyPreferred = path.join(os.homedir(), ".openclaw", "voice-calls");
+  const candidates =
+    path.resolve(legacyPreferred) === resolvedPreferred
+      ? [resolvedPreferred]
+      : [resolvedPreferred, path.resolve(legacyPreferred)];
   const existing =
-    [resolvedPreferred].find((dir) => {
+    candidates.find((dir) => {
       try {
         return fs.existsSync(path.join(dir, "calls.jsonl")) || fs.existsSync(dir);
       } catch {

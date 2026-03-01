@@ -77,7 +77,7 @@ OPENCLAW_PROFILE=dev openclaw tui
 
 2. **Dev 引导**（`gateway --dev`）
    - 如果缺失则写入最小配置（`gateway.mode=local`，绑定 loopback）。
-   - 将 `agent.workspace` 设置为 dev 工作区。
+   - 将 `agents.defaults.workspace` 设置为 dev 工作区。
    - 设置 `agent.skipBootstrap=true`（无 BOOTSTRAP.md）。
    - 如果缺失则填充工作区文件：
      `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`、`HEARTBEAT.md`。

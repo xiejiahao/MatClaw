@@ -373,6 +373,40 @@ describe("doctor config flow", () => {
     expect(cfg.channels.discord.accounts.default.allowFrom).toEqual(["123"]);
   });
 
+  it("migrates legacy config into the active state directory", async () => {
+    await withTempHome(
+      async (home) => {
+        const stateDir = path.join(home, ".openclaw-work");
+        const legacyDir = path.join(home, ".clawdbot");
+        const legacyPath = path.join(legacyDir, "clawdbot.json");
+        const targetPath = path.join(stateDir, "openclaw.json");
+        const defaultTargetPath = path.join(home, ".openclaw", "openclaw.json");
+        const legacyConfig = {
+          gateway: { mode: "local" },
+          agents: { defaults: { workspace: path.join(home, "workspace-legacy") } },
+        };
+
+        await fs.mkdir(legacyDir, { recursive: true });
+        await fs.writeFile(legacyPath, JSON.stringify(legacyConfig, null, 2), "utf-8");
+
+        const result = await loadAndMaybeMigrateDoctorConfig({
+          options: { nonInteractive: true },
+          confirm: async () => false,
+        });
+
+        await expect(fs.readFile(targetPath, "utf-8")).resolves.toContain('"gateway"');
+        await expect(fs.access(defaultTargetPath)).rejects.toMatchObject({ code: "ENOENT" });
+        expect((result.cfg as { gateway?: { mode?: string } }).gateway?.mode).toBe("local");
+      },
+      {
+        env: {
+          OPENCLAW_PROFILE: "work",
+          OPENCLAW_STATE_DIR: (home) => path.join(home, ".openclaw-work"),
+        },
+      },
+    );
+  });
+
   it('adds allowFrom ["*"] when dmPolicy="open" and allowFrom is missing on repair', async () => {
     const result = await runDoctorConfigWithInput({
       repair: true,

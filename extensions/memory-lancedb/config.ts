@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 export type MemoryConfig = {
   embedding: {
@@ -23,19 +23,33 @@ const DEFAULT_MODEL = "text-embedding-3-small";
 export const DEFAULT_CAPTURE_MAX_CHARS = 500;
 const LEGACY_STATE_DIRS: string[] = [];
 
+function resolveStateDirFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  const stateOverride = env.OPENCLAW_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
+  if (stateOverride) {
+    if (stateOverride.startsWith("~")) {
+      return resolve(stateOverride.replace(/^~(?=$|[\\/])/, homedir()));
+    }
+    return resolve(stateOverride);
+  }
+  const profile = env.OPENCLAW_PROFILE?.trim() || env.CLAWDBOT_PROFILE?.trim();
+  const suffix = profile && profile.toLowerCase() !== "default" ? `-${profile}` : "";
+  return join(homedir(), `.openclaw${suffix}`);
+}
+
 function resolveDefaultDbPath(): string {
   const home = homedir();
-  const preferred = join(home, ".openclaw", "memory", "lancedb");
-  try {
-    if (fs.existsSync(preferred)) {
-      return preferred;
-    }
-  } catch {
-    // best-effort
+  const preferred = join(resolveStateDirFromEnv(process.env), "memory", "lancedb");
+  const legacyPreferred = join(home, ".openclaw", "memory", "lancedb");
+  const candidates = [preferred];
+  if (legacyPreferred !== preferred) {
+    candidates.push(legacyPreferred);
   }
 
   for (const legacy of LEGACY_STATE_DIRS) {
-    const candidate = join(home, legacy, "memory", "lancedb");
+    candidates.push(join(home, legacy, "memory", "lancedb"));
+  }
+
+  for (const candidate of candidates) {
     try {
       if (fs.existsSync(candidate)) {
         return candidate;
@@ -159,7 +173,7 @@ export const memoryConfigSchema = {
     },
     dbPath: {
       label: "Database Path",
-      placeholder: "~/.openclaw/memory/lancedb",
+      placeholder: "<stateDir>/memory/lancedb",
       advanced: true,
     },
     autoCapture: {

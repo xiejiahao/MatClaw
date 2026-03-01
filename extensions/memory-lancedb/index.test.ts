@@ -11,7 +11,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "test-key";
 const HAS_OPENAI_KEY = Boolean(process.env.OPENAI_API_KEY);
@@ -62,6 +62,29 @@ describe("memory plugin e2e", () => {
     expect(config?.embedding?.apiKey).toBe(OPENAI_API_KEY);
     expect(config?.dbPath).toBe(dbPath);
     expect(config?.captureMaxChars).toBe(500);
+  });
+
+  test("config schema defaults dbPath under OPENCLAW_STATE_DIR", async () => {
+    const envSnapshot = { ...process.env };
+    const stateDir = path.join(tmpDir, ".openclaw-work");
+    process.env.OPENCLAW_STATE_DIR = stateDir;
+    delete process.env.CLAWDBOT_STATE_DIR;
+    delete process.env.OPENCLAW_PROFILE;
+
+    try {
+      vi.resetModules();
+      const { default: memoryPlugin } = await import("./index.js");
+      const config = memoryPlugin.configSchema?.parse?.({
+        embedding: {
+          apiKey: OPENAI_API_KEY,
+          model: "text-embedding-3-small",
+        },
+      });
+
+      expect(config?.dbPath).toBe(path.join(stateDir, "memory", "lancedb"));
+    } finally {
+      process.env = envSnapshot;
+    }
   });
 
   test("config schema resolves env vars", async () => {

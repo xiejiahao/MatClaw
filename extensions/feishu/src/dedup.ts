@@ -9,15 +9,29 @@ const FILE_MAX_ENTRIES = 10_000;
 
 const memoryDedupe = createDedupeCache({ ttlMs: DEDUP_TTL_MS, maxSize: MEMORY_MAX_SIZE });
 
+function resolveUserPath(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("~")) {
+    const expanded = trimmed.replace(/^~(?=$|[\\/])/, os.homedir());
+    return path.resolve(expanded);
+  }
+  return path.resolve(trimmed);
+}
+
 function resolveStateDirFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   const stateOverride = env.OPENCLAW_STATE_DIR?.trim() || env.CLAWDBOT_STATE_DIR?.trim();
   if (stateOverride) {
-    return stateOverride;
+    return resolveUserPath(stateOverride);
   }
   if (env.VITEST || env.NODE_ENV === "test") {
     return path.join(os.tmpdir(), ["openclaw-vitest", String(process.pid)].join("-"));
   }
-  return path.join(os.homedir(), ".openclaw");
+  const profile = env.OPENCLAW_PROFILE?.trim() || env.CLAWDBOT_PROFILE?.trim();
+  const suffix = profile && profile.toLowerCase() !== "default" ? `-${profile}` : "";
+  return path.join(os.homedir(), `.openclaw${suffix}`);
 }
 
 function resolveNamespaceFilePath(namespace: string): string {

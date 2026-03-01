@@ -15,15 +15,19 @@ import {
 import { getCallHistoryFromStore, loadActiveCallsFromStore } from "./manager/store.js";
 import type { VoiceCallProvider } from "./providers/base.js";
 import type { CallId, CallRecord, NormalizedEvent, OutboundCallOptions } from "./types.js";
-import { resolveUserPath } from "./utils.js";
+import { resolveStateDirFromEnv, resolveUserPath } from "./utils.js";
 
 function resolveDefaultStoreBase(config: VoiceCallConfig, storePath?: string): string {
   const rawOverride = storePath?.trim() || config.store?.trim();
   if (rawOverride) {
     return resolveUserPath(rawOverride);
   }
-  const preferred = path.join(os.homedir(), ".openclaw", "voice-calls");
-  const candidates = [preferred].map((dir) => resolveUserPath(dir));
+  const preferred = path.join(resolveStateDirFromEnv(), "voice-calls");
+  const legacyPreferred = path.join(os.homedir(), ".openclaw", "voice-calls");
+  const candidates =
+    path.resolve(preferred) === path.resolve(legacyPreferred)
+      ? [preferred]
+      : [preferred, legacyPreferred];
   const existing =
     candidates.find((dir) => {
       try {

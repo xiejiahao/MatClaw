@@ -1633,7 +1633,7 @@ describe("security audit", () => {
         "channels.discord.guilds.123.channels.general.users:security-team",
       );
       expect(finding?.detail).toContain(
-        "~/.openclaw/credentials/discord-allowFrom.json:team.owner",
+        `${path.join(tmp, "credentials", "discord-allowFrom.json")}:team.owner`,
       );
       expect(finding?.detail).not.toContain("<@123456789012345678>");
     });

@@ -28,6 +28,11 @@ import {
 } from "./doctor-auth.js";
 import { doctorShellCompletion } from "./doctor-completion.js";
 import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
+import {
+  detectLegacyExecApprovalsMigration,
+  formatLegacyExecApprovalsMigrationPreview,
+  moveLegacyExecApprovalsFile,
+} from "./doctor-exec-approvals.js";
 import { maybeRepairGatewayDaemon } from "./doctor-gateway-daemon-flow.js";
 import { checkGatewayHealth, probeGatewayMemoryStatus } from "./doctor-gateway-health.js";
 import {
@@ -36,6 +41,7 @@ import {
 } from "./doctor-gateway-services.js";
 import { noteSourceInstallIssues } from "./doctor-install.js";
 import { noteMemorySearchHealth } from "./doctor-memory-search.js";
+import { runDoctorMigrationPrompt } from "./doctor-migration-prompt.js";
 import {
   noteMacLaunchAgentOverrides,
   noteMacLaunchctlGatewayEnvOverrides,
@@ -53,7 +59,14 @@ import {
 import { maybeRepairUiProtocolFreshness } from "./doctor-ui.js";
 import { maybeOfferUpdateBeforeDoctor } from "./doctor-update.js";
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
-import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-workspace.js";
+import {
+  applyLegacyProfileWorkspaceConfigMigration,
+  detectLegacyProfileWorkspaceMigration,
+  formatLegacyProfileWorkspaceMigrationPreview,
+  MEMORY_SYSTEM_PROMPT,
+  moveLegacyProfileWorkspace,
+  shouldSuggestMemorySystem,
+} from "./doctor-workspace.js";
 import { applyWizardMetadata, printWizardHeader, randomToken } from "./onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
 
@@ -264,6 +277,60 @@ export async function doctorCommand(
   }
 
   noteWorkspaceStatus(cfg);
+  const legacyWorkspaceMigration = detectLegacyProfileWorkspaceMigration({ cfg });
+  if (legacyWorkspaceMigration) {
+    await runDoctorMigrationPrompt(
+      {
+        migration: legacyWorkspaceMigration,
+        title: "Legacy workspace layout",
+        formatPreview: formatLegacyProfileWorkspaceMigrationPreview,
+        confirmMessage: "Move workspace to the new profile default now?",
+        runMigration: async (m) => {
+          await moveLegacyProfileWorkspace({
+            source: m.legacyWorkspace,
+            destination: m.targetWorkspace,
+          });
+          cfg = applyLegacyProfileWorkspaceConfigMigration(cfg, m);
+          return [
+            `Moved: ${shortenHomePath(m.legacyWorkspace)}`,
+            `To: ${shortenHomePath(m.targetWorkspace)}`,
+            m.shouldUpdateConfig
+              ? "Updated: removed agents.defaults.workspace (now uses implicit default)."
+              : "Config unchanged (already using implicit default workspace).",
+            `Rollback hint: mv "${m.targetWorkspace}" "${m.legacyWorkspace}"`,
+          ];
+        },
+        formatBlockedHint: (m) =>
+          `Manual move (if desired): mv "${m.legacyWorkspace}" "${m.targetWorkspace}"`,
+      },
+      { runtime, nonInteractive: options.nonInteractive, yes: options.yes },
+    );
+  }
+  const legacyExecApprovalsMigration = detectLegacyExecApprovalsMigration();
+  if (legacyExecApprovalsMigration) {
+    await runDoctorMigrationPrompt(
+      {
+        migration: legacyExecApprovalsMigration,
+        title: "Legacy exec approvals",
+        formatPreview: formatLegacyExecApprovalsMigrationPreview,
+        confirmMessage: "Move exec approvals file to the new profile default now?",
+        runMigration: async (m) => {
+          const migrated = await moveLegacyExecApprovalsFile(m);
+          return [
+            `Moved: ${shortenHomePath(m.legacyPath)}`,
+            `To: ${shortenHomePath(m.targetPath)}`,
+            migrated.rewroteSocketPath
+              ? "Updated: socket.path moved to the new profile default."
+              : "Updated: socket.path unchanged.",
+            `Rollback hint: mv "${m.targetPath}" "${m.legacyPath}"`,
+          ];
+        },
+        formatBlockedHint: (m) =>
+          `Manual move (if desired): mv "${m.legacyPath}" "${m.targetPath}"`,
+      },
+      { runtime, nonInteractive: options.nonInteractive, yes: options.yes },
+    );
+  }
 
   // Check and fix shell completion
   await doctorShellCompletion(runtime, prompter, {

@@ -64,7 +64,7 @@ For a high-level overview, see [Onboarding Wizard](/start/wizard).
     </Note>
   </Step>
   <Step title="Workspace">
-    - Default `~/.openclaw/workspace` (configurable).
+    - Default `<stateDir>/workspace` (for example `~/.openclaw/workspace` or `~/.openclaw-<profile>/workspace`; configurable).
     - Seeds the workspace files needed for the agent bootstrap ritual.
     - Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
   </Step>

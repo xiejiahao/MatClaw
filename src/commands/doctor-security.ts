@@ -4,8 +4,10 @@ import { formatCliCommand } from "../cli/command-format.js";
 import type { OpenClawConfig, GatewayBindMode } from "../config/config.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { isLoopbackHost, resolveGatewayBindHost } from "../gateway/net.js";
+import { resolveExecApprovalsPath } from "../infra/exec-approvals.js";
 import { resolveDmAllowState } from "../security/dm-policy-shared.js";
 import { note } from "../terminal/note.js";
+import { shortenHomePath } from "../utils.js";
 import { resolveDefaultChannelAccountContext } from "./channel-account-context.js";
 
 export async function noteSecurityWarnings(cfg: OpenClawConfig) {
@@ -13,9 +15,10 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
   const auditHint = `- Run: ${formatCliCommand("openclaw security audit --deep")}`;
 
   if (cfg.approvals?.exec?.enabled === false) {
+    const approvalsPath = shortenHomePath(resolveExecApprovalsPath());
     warnings.push(
       "- Note: approvals.exec.enabled=false disables approval forwarding only.",
-      "  Host exec gating still comes from ~/.openclaw/exec-approvals.json.",
+      `  Host exec gating still comes from ${approvalsPath}.`,
       `  Check local policy with: ${formatCliCommand("openclaw approvals get --gateway")}`,
     );
   }

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveStateDir } from "../config/paths.js";
 import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
 
@@ -18,15 +19,27 @@ export async function noteMacLaunchAgentOverrides() {
     return;
   }
   const home = resolveHomeDir();
-  const markerCandidates = [path.join(home, ".openclaw", "disable-launchagent")];
+  const activeStateDir = resolveStateDir(process.env, os.homedir);
+  const defaultStateDir = path.join(home, ".openclaw");
+  const markerCandidates = Array.from(
+    new Set([
+      path.join(activeStateDir, "disable-launchagent"),
+      path.join(defaultStateDir, "disable-launchagent"),
+    ]),
+  );
   const markerPath = markerCandidates.find((candidate) => fs.existsSync(candidate));
   if (!markerPath) {
     return;
   }
 
   const displayMarkerPath = shortenHomePath(markerPath);
+  const markerInsideActiveState =
+    path.resolve(markerPath) === path.resolve(path.join(activeStateDir, "disable-launchagent"));
   const lines = [
     `- LaunchAgent writes are disabled via ${displayMarkerPath}.`,
+    markerInsideActiveState
+      ? undefined
+      : `- Active state dir is ${shortenHomePath(activeStateDir)}; consider moving this marker there.`,
     "- To restore default behavior:",
     `  rm ${displayMarkerPath}`,
   ].filter((line): line is string => Boolean(line));

@@ -10,6 +10,16 @@ export type MaybeCreateDynamicAgentResult = {
   agentId?: string;
 };
 
+function resolveDefaultStateDir(runtime: PluginRuntime): string {
+  try {
+    return runtime.state.resolveStateDir(process.env, os.homedir);
+  } catch {
+    const profile = process.env.OPENCLAW_PROFILE?.trim() || process.env.CLAWDBOT_PROFILE?.trim();
+    const suffix = profile && profile.toLowerCase() !== "default" ? `-${profile}` : "";
+    return path.join(os.homedir(), `.openclaw${suffix}`);
+  }
+}
+
 /**
  * Check if a dynamic agent should be created for a DM user and create it if needed.
  * This creates a unique agent instance with its own workspace for each DM user.
@@ -77,8 +87,11 @@ export async function maybeCreateDynamicAgent(params: {
   }
 
   // Resolve path templates with substitutions
-  const workspaceTemplate = dynamicCfg.workspaceTemplate ?? "~/.openclaw/workspace-{agentId}";
-  const agentDirTemplate = dynamicCfg.agentDirTemplate ?? "~/.openclaw/agents/{agentId}/agent";
+  const defaultStateDir = resolveDefaultStateDir(runtime);
+  const workspaceTemplate =
+    dynamicCfg.workspaceTemplate ?? path.join(defaultStateDir, "workspace-{agentId}");
+  const agentDirTemplate =
+    dynamicCfg.agentDirTemplate ?? path.join(defaultStateDir, "agents", "{agentId}", "agent");
 
   const workspace = resolveUserPath(
     workspaceTemplate.replace("{userId}", senderOpenId).replace("{agentId}", agentId),

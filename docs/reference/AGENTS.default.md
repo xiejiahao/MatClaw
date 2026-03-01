@@ -10,7 +10,7 @@ read_when:
 
 ## First run (recommended)
 
-OpenClaw uses a dedicated workspace directory for the agent. Default: `~/.openclaw/workspace` (configurable via `agents.defaults.workspace`).
+OpenClaw uses a dedicated workspace directory for the agent. Default: `<stateDir>/workspace` (for example `~/.openclaw/workspace` or `~/.openclaw-<profile>/workspace`; configurable via `agents.defaults.workspace`).
 
 1. Create the workspace (if it doesn’t already exist):
 

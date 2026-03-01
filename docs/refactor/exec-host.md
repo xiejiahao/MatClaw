@@ -29,7 +29,7 @@ title: "Exec Host Refactor"
 - **Config keys:** `exec.host` + `exec.security` (per-agent override allowed).
 - **Elevation:** keep `/elevated` as an alias for gateway full access.
 - **Ask default:** `on-miss`.
-- **Approvals store:** `~/.openclaw/exec-approvals.json` (JSON, no legacy migration).
+- **Approvals store:** `<stateDir>/exec-approvals.json` (JSON, no legacy migration).
 - **Runner:** headless system service; UI app hosts a Unix socket for approvals.
 - **Node identity:** use existing `nodeId`.
 - **Socket auth:** Unix socket + token (cross-platform); split later if needed.
@@ -103,7 +103,7 @@ Ask is **independent** of allowlist; allowlist can be used with `always` or `on-
 
 ## Approvals store (JSON)
 
-Path: `~/.openclaw/exec-approvals.json`
+Path: `<stateDir>/exec-approvals.json`
 
 Purpose:
 
@@ -117,7 +117,7 @@ Proposed schema (v1):
 {
   "version": 1,
   "socket": {
-    "path": "~/.openclaw/exec-approvals.sock",
+    "path": "<stateDir>/exec-approvals.sock",
     "token": "base64-opaque-token"
   },
   "defaults": {
@@ -166,7 +166,7 @@ Notes:
 
 ### IPC
 
-- Unix socket at `~/.openclaw/exec-approvals.sock` (0600).
+- Unix socket at `<stateDir>/exec-approvals.sock` (0600).
 - Token stored in `exec-approvals.json` (0600).
 - Peer checks: same-UID only.
 - Challenge/response: nonce + HMAC(token, request-hash) to prevent replay.

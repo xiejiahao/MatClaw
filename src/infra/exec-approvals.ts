@@ -1,8 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { resolveStateDir } from "../config/paths.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
-import { expandHomePrefix } from "./home-dir.js";
+import { expandHomePrefix, resolveRequiredHomeDir } from "./home-dir.js";
 import { requestJsonlSocket } from "./jsonl-socket.js";
 export * from "./exec-approvals-analysis.js";
 export * from "./exec-approvals-allowlist.js";
@@ -119,8 +121,13 @@ const DEFAULT_SECURITY: ExecSecurity = "deny";
 const DEFAULT_ASK: ExecAsk = "on-miss";
 const DEFAULT_ASK_FALLBACK: ExecSecurity = "deny";
 const DEFAULT_AUTO_ALLOW_SKILLS = false;
-const DEFAULT_SOCKET = "~/.openclaw/exec-approvals.sock";
-const DEFAULT_FILE = "~/.openclaw/exec-approvals.json";
+const EXEC_APPROVALS_FILENAME = "exec-approvals.json";
+const EXEC_APPROVALS_SOCKET_FILENAME = "exec-approvals.sock";
+const LEGACY_STATE_DIRNAME = ".openclaw";
+
+function resolveExecApprovalsStateDir(env: NodeJS.ProcessEnv = process.env): string {
+  return resolveStateDir(env, () => resolveRequiredHomeDir(env, os.homedir));
+}
 
 function hashExecApprovalsRaw(raw: string | null): string {
   return crypto
@@ -129,12 +136,34 @@ function hashExecApprovalsRaw(raw: string | null): string {
     .digest("hex");
 }
 
-export function resolveExecApprovalsPath(): string {
-  return expandHomePrefix(DEFAULT_FILE);
+export function resolveExecApprovalsPath(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveExecApprovalsStateDir(env), EXEC_APPROVALS_FILENAME);
 }
 
-export function resolveExecApprovalsSocketPath(): string {
-  return expandHomePrefix(DEFAULT_SOCKET);
+export function resolveExecApprovalsSocketPath(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveExecApprovalsStateDir(env), EXEC_APPROVALS_SOCKET_FILENAME);
+}
+
+export function resolveLegacyExecApprovalsPath(env: NodeJS.ProcessEnv = process.env): string {
+  const home = resolveRequiredHomeDir(env, os.homedir);
+  return path.join(home, LEGACY_STATE_DIRNAME, EXEC_APPROVALS_FILENAME);
+}
+
+export function resolveLegacyExecApprovalsSocketPath(env: NodeJS.ProcessEnv = process.env): string {
+  const home = resolveRequiredHomeDir(env, os.homedir);
+  return path.join(home, LEGACY_STATE_DIRNAME, EXEC_APPROVALS_SOCKET_FILENAME);
+}
+
+function resolveExecApprovalsReadPath(env: NodeJS.ProcessEnv = process.env): string {
+  const canonicalPath = resolveExecApprovalsPath(env);
+  if (fs.existsSync(canonicalPath)) {
+    return canonicalPath;
+  }
+  const legacyPath = resolveLegacyExecApprovalsPath(env);
+  if (path.resolve(legacyPath) !== path.resolve(canonicalPath) && fs.existsSync(legacyPath)) {
+    return legacyPath;
+  }
+  return canonicalPath;
 }
 
 function normalizeAllowlistPattern(value: string | undefined): string | null {
@@ -282,7 +311,7 @@ function generateToken(): string {
 }
 
 export function readExecApprovalsSnapshot(): ExecApprovalsSnapshot {
-  const filePath = resolveExecApprovalsPath();
+  const filePath = resolveExecApprovalsReadPath();
   if (!fs.existsSync(filePath)) {
     const file = normalizeExecApprovals({ version: 1, agents: {} });
     return {
@@ -314,7 +343,7 @@ export function readExecApprovalsSnapshot(): ExecApprovalsSnapshot {
 }
 
 export function loadExecApprovals(): ExecApprovalsFile {
-  const filePath = resolveExecApprovalsPath();
+  const filePath = resolveExecApprovalsReadPath();
   try {
     if (!fs.existsSync(filePath)) {
       return normalizeExecApprovals({ version: 1, agents: {} });
@@ -344,15 +373,26 @@ export function saveExecApprovals(file: ExecApprovalsFile) {
 export function ensureExecApprovals(): ExecApprovalsFile {
   const loaded = loadExecApprovals();
   const next = normalizeExecApprovals(loaded);
+  const canonicalSocketPath = resolveExecApprovalsSocketPath();
+  const legacySocketPath = resolveLegacyExecApprovalsSocketPath();
   const socketPath = next.socket?.path?.trim();
   const token = next.socket?.token?.trim();
   const updated: ExecApprovalsFile = {
     ...next,
     socket: {
-      path: socketPath && socketPath.length > 0 ? socketPath : resolveExecApprovalsSocketPath(),
+      path:
+        socketPath && socketPath.length > 0
+          ? path.resolve(expandHomePrefix(socketPath))
+          : canonicalSocketPath,
       token: token && token.length > 0 ? token : generateToken(),
     },
   };
+  if (
+    updated.socket?.path &&
+    path.resolve(updated.socket.path) === path.resolve(legacySocketPath)
+  ) {
+    updated.socket.path = canonicalSocketPath;
+  }
   saveExecApprovals(updated);
   return updated;
 }
